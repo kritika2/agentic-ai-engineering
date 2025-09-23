@@ -76,6 +76,12 @@ Traditional AI agents fail when:
 ```bash
 git clone https://github.com/kritika2/agentic-ai-engineering.git
 cd agentic-ai-engineering
+
+# Create virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
@@ -83,6 +89,9 @@ pip install -r requirements.txt
 ```bash
 cd temporal_setup
 docker-compose up -d
+
+# Verify Temporal is running
+# Web UI available at: http://localhost:8080
 ```
 
 ### 3. **Run Basic Agent**
@@ -93,6 +102,11 @@ python 01-core-agents/simple_agent.py
 ### 4. **Try Temporal Workflow**
 ```bash
 python 02-temporal-workflows/durable_agents.py
+```
+
+### 5. **Test Commerce Assistant**
+```bash
+python examples/commerce_assistant/commerce_agent.py
 ```
 
 ## 🎯 **Learning Path**
@@ -236,8 +250,33 @@ class CodingAssistantWorkflow:
 3. **Deploy to production** - Leverage Temporal for reliable agent orchestration
 4. **Join the community** - Share your agent implementations and learnings
 
+## 🗺️ **Development Roadmap**
+
+### **Phase 1: Foundation** ✅
+- [x] Core agent architecture
+- [x] Temporal workflow integration  
+- [x] Commerce assistant example
+- [x] Production infrastructure setup
+
+### **Phase 2: Advanced Examples** (Coming Soon)
+- [ ] **Coding Assistant** - Multi-step development workflows
+- [ ] **Document Processor** - Contract analysis and summarization  
+- [ ] **Internal Tools Agent** - Dashboard and ticket management
+
+### **Phase 3: Multi-Agent Systems** (Planned)
+- [ ] **Agent Collaboration** - CrewAI integration patterns
+- [ ] **Role Specialization** - Specialized agent types
+- [ ] **Communication Protocols** - Inter-agent messaging
+
+### **Phase 4: Production Features** (Future)
+- [ ] **Advanced Monitoring** - Agent performance dashboards
+- [ ] **Security & Governance** - Access control and audit trails
+- [ ] **Scaling Patterns** - High-throughput agent orchestration
+
 ---
 
 **Built with ❤️ for the future of intelligent automation**
 
 *This repository implements concepts from the "Agentic AI for Engineers" series. Each example includes detailed documentation and is production-ready.*
+
+> 📝 **Note**: This is an active project! Follow for updates as we add more examples and advanced features.
