@@ -19,7 +19,7 @@ class LLMInterface:
     
     def generate(self, prompt: str, max_tokens: int = 500) -> str:
         """Fake LLM responses for testing"""
-        print(f"🧠 {self.model_name}: thinking...")
+        print(f"{self.model_name}: thinking...")
         
         # Just some basic pattern matching for demo
         if "plan" in prompt.lower():
@@ -102,7 +102,7 @@ class SearchTool(Tool):
     
     def execute(self, query: str) -> Dict[str, Any]:
         """Pretend to search"""
-        print(f"🔍 Searching for: {query}")
+        print(f"Searching for: {query}")
         
         # Just make up some results
         results = [
@@ -129,7 +129,7 @@ class CalculatorTool(Tool):
     
     def execute(self, expression: str) -> Dict[str, Any]:
         """Calculate stuff - this is kinda sketchy with eval()"""
-        print(f"🧮 Calculating: {expression}")
+        print(f"Calculating: {expression}")
         
         try:
             # Yeah I know eval() is bad but it's just a demo
@@ -168,7 +168,7 @@ class SimpleAgent:
     
     def perceive(self, user_input: str) -> Dict[str, Any]:
         """Take in user input and figure out what's going on"""
-        print(f"👂 {self.name}: got it...")
+        print(f"{self.name}: got it...")
         
         self.memory.add_interaction("user", user_input)
         
@@ -181,7 +181,7 @@ class SimpleAgent:
     
     def reason(self, perception: Dict[str, Any]) -> Dict[str, Any]:
         """Figure out what to do"""
-        print(f"🤔 {self.name}: thinking...")
+        print(f"{self.name}: thinking...")
         
         # Ask the LLM what to do
         prompt = f"""
@@ -221,7 +221,7 @@ class SimpleAgent:
     
     def act(self, plan: Dict[str, Any]) -> Dict[str, Any]:
         """Do the things"""
-        print(f"🎯 {self.name}: doing stuff...")
+        print(f"{self.name}: doing stuff...")
         
         results = []
         
@@ -258,7 +258,7 @@ class SimpleAgent:
     
     def adapt(self, action_results: Dict[str, Any]) -> str:
         """Look at what happened and respond"""
-        print(f"🔄 {self.name}: wrapping up...")
+        print(f"{self.name}: wrapping up...")
         
         # Summarize what we did
         results_summary = []
@@ -301,7 +301,7 @@ class SimpleAgent:
     def process_request(self, user_input: str) -> str:
         """Main loop: perceive → think → act → respond"""
         
-        print(f"\n🤖 {self.name}: New request")
+        print(f"\n{self.name}: New request")
         print(f"User: {user_input}")
         print("-" * 40)
         
@@ -324,7 +324,7 @@ class SimpleAgent:
 def demo_simple_agent():
     """Try out the agent"""
     
-    print("🚀 Simple Agent Demo")
+    print("Simple Agent Demo")
     print("=" * 50)
     
     agent = SimpleAgent("TestBot")
@@ -339,13 +339,13 @@ def demo_simple_agent():
     ]
     
     for i, request in enumerate(tests, 1):
-        print(f"\n📝 Test {i}/{len(tests)}")
+        print(f"\nTest {i}/{len(tests)}")
         agent.process_request(request)
         
         if i < len(tests):
             print("\n" + "="*50)
     
-    print(f"\n✅ Done! Processed {len(tests)} requests.")
+    print(f"\nDone! Processed {len(tests)} requests.")
     print(f"Memory: {len(agent.memory.short_term)} recent, {len(agent.memory.long_term)} old")
 
 if __name__ == "__main__":

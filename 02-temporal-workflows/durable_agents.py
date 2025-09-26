@@ -20,7 +20,7 @@ try:
     from temporalio.common import RetryPolicy
     TEMPORAL_AVAILABLE = True
 except ImportError:
-    print("⚠️  No Temporal - install with: pip install temporalio")
+    print("No Temporal - install with: pip install temporalio")
     TEMPORAL_AVAILABLE = False
     
     # Fake decorators so the code still runs
@@ -73,7 +73,7 @@ class AgentState:
 @activity.defn
 async def analyze_task(task: AgentTask) -> Dict[str, Any]:
     """Figure out what this task needs"""
-    print(f"🔍 Analyzing: {task.description}")
+    print(f"Analyzing: {task.description}")
     
     await asyncio.sleep(2)  # fake thinking time
     
@@ -105,7 +105,7 @@ async def analyze_task(task: AgentTask) -> Dict[str, Any]:
 @activity.defn
 async def execute_task_step(task: AgentTask, step_info: Dict[str, Any]) -> Dict[str, Any]:
     """Do the actual work"""
-    print(f"⚡ Working on: {task.id}")
+    print(f"Working on: {task.id}")
     
     # Pretend to work
     duration = step_info.get("estimated_duration", 30)
@@ -126,7 +126,7 @@ async def execute_task_step(task: AgentTask, step_info: Dict[str, Any]) -> Dict[
 @activity.defn
 async def validate_result(task: AgentTask, result: Dict[str, Any]) -> Dict[str, Any]:
     """Check if the result is good"""
-    print(f"✅ Checking result for: {task.id}")
+    print(f"Checking result for: {task.id}")
     
     await asyncio.sleep(1)
     
@@ -142,7 +142,7 @@ async def validate_result(task: AgentTask, result: Dict[str, Any]) -> Dict[str, 
 @activity.defn
 async def update_agent_memory(agent_id: str, task: AgentTask, result: Dict[str, Any]) -> Dict[str, Any]:
     """Save stuff to agent memory"""
-    print(f"🧠 Updating memory for: {agent_id}")
+    print(f"Updating memory for: {agent_id}")
     
     # TODO: save to real database
     memory_entry = {
@@ -161,10 +161,10 @@ async def update_agent_memory(agent_id: str, task: AgentTask, result: Dict[str, 
 @activity.defn
 async def notify_human(agent_id: str, message: str, requires_approval: bool = False) -> Dict[str, Any]:
     """Tell the human what's up"""
-    print(f"👤 Hey human! Agent {agent_id}: {message}")
+    print(f"Hey human! Agent {agent_id}: {message}")
     
     if requires_approval:
-        print("⏳ Waiting for approval...")
+        print("Waiting for approval...")
         await asyncio.sleep(3)  # pretend human is thinking
         
         # Fake approval (80% yes)
@@ -203,8 +203,8 @@ class DurableAgentWorkflow:
         
         self.state = AgentState(agent_id=agent_id)
         
-        print(f"🚀 Starting agent {agent_id}")
-        print(f"📋 Got {len(tasks)} tasks to do")
+        print(f"Starting agent {agent_id}")
+        print(f"Got {len(tasks)} tasks to do")
         
         results = []
         
@@ -225,7 +225,7 @@ class DurableAgentWorkflow:
                 self.state.last_checkpoint = time.time()
                 
             except Exception as e:
-                print(f"❌ Task {task.id} blew up: {str(e)}")
+                print(f"Task {task.id} blew up: {str(e)}")
                 self.state.failed_tasks.append(task.id)
                 results.append({
                     "task_id": task.id,
@@ -259,7 +259,7 @@ class DurableAgentWorkflow:
     async def _process_task(self, task: AgentTask) -> Dict[str, Any]:
         """Do a single task"""
         
-        print(f"🎯 Working on: {task.id}")
+        print(f"Working on: {task.id}")
         
         try:
             # Step 1: Figure out what we need to do
@@ -325,14 +325,14 @@ class DurableAgentWorkflow:
             }
             
         except Exception as e:
-            print(f"❌ Task {task.id} failed: {str(e)}")
+            print(f"Task {task.id} failed: {str(e)}")
             return {"task_id": task.id, "success": False, "error": str(e)}
 
 # Demo functions
 async def run_durable_agent_demo():
     """Try out the durable agent"""
     
-    print("🤖 Durable Agent Demo")
+    print("Durable Agent Demo")
     print("=" * 50)
     
     # Some test tasks
@@ -350,10 +350,10 @@ async def run_durable_agent_demo():
                 DurableAgentWorkflow.run, "agent_001", tasks,
                 id="durable-agent-demo", task_queue="agent-task-queue"
             )
-            print("\n✅ Temporal workflow done!")
-            print(f"📊 Results: {json.dumps(result, indent=2, default=str)}")
+            print("\nTemporal workflow done!")
+            print(f"Results: {json.dumps(result, indent=2, default=str)}")
         except Exception as e:
-            print(f"⚠️  No Temporal server: {e}")
+            print(f"No Temporal server: {e}")
             print("Running fake mode...")
             await run_simulation_mode(tasks)
     else:
@@ -362,19 +362,19 @@ async def run_durable_agent_demo():
 async def run_simulation_mode(tasks: List[AgentTask]):
     """Run without Temporal server"""
     
-    print("\n🎭 Simulation mode (no Temporal needed)")
+    print("\nSimulation mode (no Temporal needed)")
     print("-" * 50)
     
     workflow_instance = DurableAgentWorkflow()
     result = await workflow_instance.run("agent_001", tasks)
     
-    print("\n✅ Done!")
+    print("\nDone!")
     print(f"Agent: {result['agent_id']}")
     print(f"Tasks: {result['total_tasks']} total, {result['completed']} done, {result['failed']} failed")
     
     print(f"\nDetails:")
     for task_result in result['results']:
-        status = "✅" if task_result.get('success') else "❌"
+        status = "OK" if task_result.get('success') else "FAIL"
         print(f"   {task_result['task_id']}: {status}")
         if not task_result.get('success') and 'error' in task_result:
             print(f"      Error: {task_result['error']}")
@@ -383,7 +383,7 @@ def setup_temporal_worker():
     """Setup worker for production"""
     
     if not TEMPORAL_AVAILABLE:
-        print("⚠️  Need Temporal: pip install temporalio")
+        print("Need Temporal: pip install temporalio")
         return
     
     async def main():
@@ -394,14 +394,14 @@ def setup_temporal_worker():
             activities=[analyze_task, execute_task_step, validate_result, update_agent_memory, notify_human]
         )
         
-        print("🏃 Starting worker...")
-        print("📡 Queue: agent-task-queue")
+        print("Starting worker...")
+        print("Queue: agent-task-queue")
         await worker.run()
     
     return main
 
 if __name__ == "__main__":
-    print("🚀 Durable Agents")
+    print("Durable Agents")
     print("1. Run demo")
     print("2. Start worker")
     

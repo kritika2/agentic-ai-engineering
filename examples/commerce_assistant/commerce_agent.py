@@ -20,7 +20,7 @@ try:
     TEMPORAL_AVAILABLE = True
 except ImportError:
     TEMPORAL_AVAILABLE = False
-    # Fake it till you make it
+    # Mock classes for when Temporal isn't available
     class workflow:
         @staticmethod
         def defn(cls): return cls
@@ -67,7 +67,7 @@ class Deal:
 @activity.defn
 async def browse_products(search_query: str, budget: Optional[float] = None) -> List[Product]:
     """Find products"""
-    print(f"🛒 Looking for: {search_query}")
+    print(f"Looking for: {search_query}")
     
     await asyncio.sleep(2)  # fake search time
     
@@ -91,13 +91,13 @@ async def browse_products(search_query: str, budget: Optional[float] = None) -> 
             if budget is None or product.price <= budget:
                 matches.append(product)
     
-    print(f"📦 Found {len(matches)} products")
+    print(f"Found {len(matches)} products")
     return matches[:5]
 
 @activity.defn
 async def compare_products(products: List[Product], preferences: Dict[str, Any]) -> Dict[str, Any]:
     """Compare and rank products"""
-    print(f"⚖️  Comparing {len(products)} products")
+    print(f"Comparing {len(products)} products")
     
     await asyncio.sleep(1.5)
     
@@ -140,7 +140,7 @@ async def compare_products(products: List[Product], preferences: Dict[str, Any])
 @activity.defn
 async def negotiate_deal(product: Product, user_budget: Optional[float] = None) -> Deal:
     """Try to get a better price"""
-    print(f"💰 Negotiating for: {product.name}")
+    print(f"Negotiating for: {product.name}")
     
     await asyncio.sleep(3)  # negotiations take time
     
@@ -178,13 +178,13 @@ async def negotiate_deal(product: Product, user_budget: Optional[float] = None) 
         expires_at=datetime.now() + timedelta(hours=24)
     )
     
-    print(f"🎯 Got {discount_percent:.1f}% off: ${original_price:.2f} → ${final_price:.2f}")
+    print(f"Got {discount_percent:.1f}% off: ${original_price:.2f} → ${final_price:.2f}")
     return deal
 
 @activity.defn
 async def check_inventory(product: Product) -> Dict[str, Any]:
     """Check if we have it in stock"""
-    print(f"📋 Checking stock: {product.name}")
+    print(f"Checking stock: {product.name}")
     
     await asyncio.sleep(1)
     
@@ -208,7 +208,7 @@ async def check_inventory(product: Product) -> Dict[str, Any]:
 @activity.defn
 async def process_purchase(deal: Deal, user_id: str) -> Dict[str, Any]:
     """Actually buy the thing"""
-    print(f"💳 Processing purchase for: {user_id}")
+    print(f"Processing purchase for: {user_id}")
     
     await asyncio.sleep(2)
     
@@ -248,8 +248,8 @@ class CommerceAgentWorkflow:
     async def run(self, request: CommerceRequest) -> Dict[str, Any]:
         """Do the commerce thing"""
         
-        print(f"🛍️  Starting for user: {request.user_id}")
-        print(f"📝 They want: {request.request}")
+        print(f"Starting for user: {request.user_id}")
+        print(f"They want: {request.request}")
         
         try:
             # Step 1: Find products
@@ -365,7 +365,7 @@ class CommerceAgentWorkflow:
 async def demo_commerce_agent():
     """Try out the commerce agent"""
     
-    print("🛍️  Commerce Agent Demo")
+    print("Commerce Agent Demo")
     print("=" * 50)
     
     # Test requests
@@ -387,7 +387,7 @@ async def demo_commerce_agent():
     ]
     
     for i, request in enumerate(requests, 1):
-        print(f"\n🔄 Request {i}/{len(requests)}")
+        print(f"\nRequest {i}/{len(requests)}")
         print(f"User: {request.user_id}")
         print(f"Wants: {request.request}")
         print(f"Budget: ${request.budget}")
@@ -396,10 +396,10 @@ async def demo_commerce_agent():
         workflow = CommerceAgentWorkflow()
         result = await workflow.run(request)
         
-        print(f"\n📊 Result:")
+        print(f"\nResult:")
         if result["success"]:
             if result["action"] == "bought_it":
-                print(f"✅ Bought it!")
+                print(f"Bought it!")
                 deal = result["deal"]
                 print(f"   Product: {deal['product']}")
                 print(f"   Price: ${deal['was']:.2f} → ${deal['now']:.2f}")
@@ -409,20 +409,20 @@ async def demo_commerce_agent():
                     print(f"   Order: {result['purchase']['order_id']}")
             
             elif result["action"] == "needs_approval":
-                print(f"💼 Needs approval:")
+                print(f"Needs approval:")
                 deal = result["deal"]
                 print(f"   Product: {deal['product']}")
                 print(f"   Price: ${deal['was']:.2f} → ${deal['now']:.2f}")
                 print(f"   Saved: ${deal['saved']:.2f} ({deal['discount']:.1f}% off)")
         else:
-            print(f"❌ {result['message']}")
+            print(f"Failed: {result['message']}")
             if "error" in result:
                 print(f"   Error: {result['error']}")
         
         if i < len(requests):
             print("\n" + "=" * 50)
     
-    print(f"\n✅ Done! Processed {len(requests)} requests.")
+    print(f"\nDone! Processed {len(requests)} requests.")
 
 if __name__ == "__main__":
     asyncio.run(demo_commerce_agent())
