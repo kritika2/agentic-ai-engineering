@@ -1,10 +1,6 @@
 """
-Commerce Assistant Agent with Temporal Workflows
-Implements the commerce assistant example from the article:
-- Browses and compares products
-- Negotiates deals
-- Handles complex multi-step purchasing workflows
-- Maintains state across long-running processes
+Commerce bot that can browse products, compare stuff, and negotiate deals.
+Uses Temporal so it doesn't lose track of what it's doing.
 """
 
 import asyncio
@@ -14,7 +10,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 
-# Import Temporal (with fallback for demo)
+# This could probably be refactored into smaller modules
+
+# Temporal imports with fallback
 try:
     from temporalio import workflow, activity
     from temporalio.client import Client
@@ -22,7 +20,7 @@ try:
     TEMPORAL_AVAILABLE = True
 except ImportError:
     TEMPORAL_AVAILABLE = False
-    # Mock decorators
+    # Fake it till you make it
     class workflow:
         @staticmethod
         def defn(cls): return cls
@@ -37,7 +35,7 @@ except ImportError:
 
 @dataclass
 class Product:
-    """Product information"""
+    """A product"""
     id: str
     name: str
     price: float
@@ -48,7 +46,7 @@ class Product:
 
 @dataclass
 class CommerceRequest:
-    """User's commerce request"""
+    """What the user wants"""
     user_id: str
     request: str
     budget: Optional[float] = None
@@ -57,7 +55,7 @@ class CommerceRequest:
 
 @dataclass
 class Deal:
-    """Negotiated deal information"""
+    """A negotiated deal"""
     product: Product
     original_price: float
     negotiated_price: float
@@ -65,17 +63,16 @@ class Deal:
     terms: Dict[str, Any]
     expires_at: datetime
 
-# Commerce Activities
+# Activities
 @activity.defn
 async def browse_products(search_query: str, budget: Optional[float] = None) -> List[Product]:
-    """Browse and search for products"""
-    print(f"🛒 Browsing products for: {search_query}")
+    """Find products"""
+    print(f"🛒 Looking for: {search_query}")
     
-    # Simulate product search
-    await asyncio.sleep(2)
+    await asyncio.sleep(2)  # fake search time
     
-    # Mock product database
-    all_products = [
+    # Fake product database
+    products = [
         Product("laptop_1", "MacBook Pro 16\"", 2499.0, 4.8, "Apple", ["M2 Pro", "16GB RAM", "512GB SSD"]),
         Product("laptop_2", "Dell XPS 15", 1899.0, 4.6, "Dell", ["Intel i7", "16GB RAM", "1TB SSD"]),
         Product("laptop_3", "ThinkPad X1 Carbon", 1699.0, 4.7, "Lenovo", ["Intel i7", "16GB RAM", "512GB SSD"]),
@@ -84,24 +81,22 @@ async def browse_products(search_query: str, budget: Optional[float] = None) -> 
         Product("headphones_1", "AirPods Pro", 249.0, 4.8, "Apple", ["ANC", "Spatial Audio", "H2 Chip"]),
     ]
     
-    # Filter products based on search query
-    matching_products = []
+    # Basic search
+    matches = []
     search_lower = search_query.lower()
     
-    for product in all_products:
+    for product in products:
         if (search_lower in product.name.lower() or 
             any(search_lower in feature.lower() for feature in product.features)):
-            
-            # Apply budget filter if specified
             if budget is None or product.price <= budget:
-                matching_products.append(product)
+                matches.append(product)
     
-    print(f"📦 Found {len(matching_products)} matching products")
-    return matching_products[:5]  # Return top 5
+    print(f"📦 Found {len(matches)} products")
+    return matches[:5]
 
 @activity.defn
 async def compare_products(products: List[Product], preferences: Dict[str, Any]) -> Dict[str, Any]:
-    """Compare products and rank them"""
+    """Compare and rank products"""
     print(f"⚖️  Comparing {len(products)} products")
     
     await asyncio.sleep(1.5)
@@ -109,148 +104,118 @@ async def compare_products(products: List[Product], preferences: Dict[str, Any])
     if not products:
         return {"rankings": [], "recommendation": None}
     
-    # Simple scoring algorithm
-    scored_products = []
+    # Simple scoring - this could be way more sophisticated
+    scored = []
     
     for product in products:
-        score = 0
+        score = product.rating * 20  # base score
         
-        # Base score from rating
-        score += product.rating * 20
-        
-        # Price preference (lower is better, but not too cheap)
+        # Cheaper is better (kinda)
         price_score = max(0, 100 - (product.price / 50))
         score += price_score * 0.3
         
-        # Brand preference
-        preferred_brands = preferences.get("brands", [])
-        if product.vendor in preferred_brands:
+        # Brand preferences
+        if product.vendor in preferences.get("brands", []):
             score += 15
         
         # Feature matching
-        required_features = preferences.get("features", [])
-        feature_matches = sum(1 for req in required_features 
+        wanted_features = preferences.get("features", [])
+        feature_matches = sum(1 for req in wanted_features 
                             if any(req.lower() in feature.lower() for feature in product.features))
         score += feature_matches * 10
         
-        scored_products.append({
+        scored.append({
             "product": product,
             "score": score,
-            "price_score": price_score,
             "feature_matches": feature_matches
         })
     
-    # Sort by score
-    scored_products.sort(key=lambda x: x["score"], reverse=True)
-    
-    recommendation = scored_products[0] if scored_products else None
+    scored.sort(key=lambda x: x["score"], reverse=True)
     
     return {
-        "rankings": scored_products,
-        "recommendation": recommendation,
-        "comparison_criteria": ["rating", "price", "brand_preference", "feature_matching"]
+        "rankings": scored,
+        "recommendation": scored[0] if scored else None
     }
 
 @activity.defn
 async def negotiate_deal(product: Product, user_budget: Optional[float] = None) -> Deal:
-    """Attempt to negotiate a better deal"""
-    print(f"💰 Negotiating deal for: {product.name}")
+    """Try to get a better price"""
+    print(f"💰 Negotiating for: {product.name}")
     
-    await asyncio.sleep(3)  # Negotiation takes time
+    await asyncio.sleep(3)  # negotiations take time
     
     original_price = product.price
     
-    # Negotiation logic
+    # Figure out target price
     if user_budget and user_budget < original_price:
-        # Try to meet budget
         target_price = user_budget
         discount_percent = ((original_price - target_price) / original_price) * 100
-        
-        # Limit discount to realistic range
-        if discount_percent > 20:
+        if discount_percent > 20:  # max 20% discount
             discount_percent = 20
             target_price = original_price * 0.8
     else:
-        # Standard negotiation - try for 5-15% discount
+        # Try for 5-15% off
         import random
         discount_percent = random.uniform(5, 15)
         target_price = original_price * (1 - discount_percent / 100)
     
-    # Simulate negotiation success rate
+    # Sometimes negotiations fail
     import random
-    negotiation_success = random.random() > 0.3  # 70% success rate
+    success = random.random() > 0.3  # 70% success
     
-    if negotiation_success:
+    if success:
         final_price = target_price
-        terms = {
-            "payment_terms": "30 days",
-            "warranty": "extended_1_year",
-            "free_shipping": True,
-            "return_policy": "30_days"
-        }
+        terms = {"payment_terms": "30 days", "warranty": "extended", "free_shipping": True}
     else:
         # Partial success
-        discount_percent = discount_percent * 0.5
+        discount_percent *= 0.5
         final_price = original_price * (1 - discount_percent / 100)
-        terms = {
-            "payment_terms": "standard",
-            "warranty": "standard",
-            "free_shipping": discount_percent > 5,
-            "return_policy": "14_days"
-        }
+        terms = {"payment_terms": "standard", "warranty": "standard", "free_shipping": False}
     
     deal = Deal(
-        product=product,
-        original_price=original_price,
-        negotiated_price=final_price,
-        discount_percent=discount_percent,
-        terms=terms,
+        product=product, original_price=original_price, negotiated_price=final_price,
+        discount_percent=discount_percent, terms=terms,
         expires_at=datetime.now() + timedelta(hours=24)
     )
     
-    print(f"🎯 Negotiated {discount_percent:.1f}% discount: ${original_price:.2f} → ${final_price:.2f}")
-    
+    print(f"🎯 Got {discount_percent:.1f}% off: ${original_price:.2f} → ${final_price:.2f}")
     return deal
 
 @activity.defn
 async def check_inventory(product: Product) -> Dict[str, Any]:
-    """Check product inventory and availability"""
-    print(f"📋 Checking inventory for: {product.name}")
+    """Check if we have it in stock"""
+    print(f"📋 Checking stock: {product.name}")
     
     await asyncio.sleep(1)
     
-    # Simulate inventory check
     import random
-    
-    in_stock = random.random() > 0.1  # 90% chance in stock
+    in_stock = random.random() > 0.1  # usually in stock
     quantity = random.randint(1, 50) if in_stock else 0
     
-    estimated_delivery = "2-3 days"
+    delivery = "2-3 days"
     if quantity < 5:
-        estimated_delivery = "5-7 days"
+        delivery = "5-7 days"  # low stock
     elif not in_stock:
-        estimated_delivery = "2-3 weeks"
+        delivery = "2-3 weeks"  # out of stock
     
     return {
         "in_stock": in_stock,
         "quantity_available": quantity,
-        "estimated_delivery": estimated_delivery,
+        "estimated_delivery": delivery,
         "last_updated": time.time()
     }
 
 @activity.defn
 async def process_purchase(deal: Deal, user_id: str) -> Dict[str, Any]:
-    """Process the final purchase"""
-    print(f"💳 Processing purchase for user: {user_id}")
+    """Actually buy the thing"""
+    print(f"💳 Processing purchase for: {user_id}")
     
     await asyncio.sleep(2)
     
-    # Simulate payment processing
     import random
+    payment_works = random.random() > 0.05  # 95% success
     
-    payment_success = random.random() > 0.05  # 95% success rate
-    
-    if payment_success:
+    if payment_works:
         order_id = f"ORDER_{int(time.time())}"
         return {
             "success": True,
@@ -262,16 +227,14 @@ async def process_purchase(deal: Deal, user_id: str) -> Dict[str, Any]:
     else:
         return {
             "success": False,
-            "error": "Payment processing failed",
+            "error": "Payment failed - try again?",
             "retry_suggested": True
         }
 
-# Main Commerce Workflow
+# Main workflow
 @workflow.defn
 class CommerceAgentWorkflow:
-    """
-    Commerce agent workflow that handles the complete purchasing process
-    """
+    """Commerce agent that buys stuff"""
     
     def __init__(self):
         self.retry_policy = RetryPolicy(
@@ -283,18 +246,16 @@ class CommerceAgentWorkflow:
     
     @workflow.run
     async def run(self, request: CommerceRequest) -> Dict[str, Any]:
-        """Main commerce workflow"""
+        """Do the commerce thing"""
         
-        print(f"🛍️  Starting commerce workflow for user: {request.user_id}")
-        print(f"📝 Request: {request.request}")
+        print(f"🛍️  Starting for user: {request.user_id}")
+        print(f"📝 They want: {request.request}")
         
         try:
-            # Step 1: Browse products
+            # Step 1: Find products
             if TEMPORAL_AVAILABLE:
                 products = await workflow.execute_activity(
-                    browse_products,
-                    request.request,
-                    request.budget,
+                    browse_products, request.request, request.budget,
                     start_to_close_timeout=timedelta(seconds=60)
                 )
             else:
@@ -303,105 +264,94 @@ class CommerceAgentWorkflow:
             if not products:
                 return {
                     "success": False,
-                    "message": "No products found matching your criteria",
+                    "message": "Couldn't find anything matching that",
                     "user_id": request.user_id
                 }
             
-            # Step 2: Compare products
+            # Step 2: Compare them
             preferences = request.preferences or {}
             
             if TEMPORAL_AVAILABLE:
                 comparison = await workflow.execute_activity(
-                    compare_products,
-                    products,
-                    preferences,
+                    compare_products, products, preferences,
                     start_to_close_timeout=timedelta(seconds=30)
                 )
             else:
                 comparison = await compare_products(products, preferences)
             
             if not comparison["recommendation"]:
-                return {
-                    "success": False,
-                    "message": "Could not find suitable product recommendations",
-                    "products_found": len(products)
-                }
+                return {"success": False, "message": "No good matches found", "products_found": len(products)}
             
-            recommended_product = comparison["recommendation"]["product"]
+            best_product = comparison["recommendation"]["product"]
             
-            # Step 3: Check inventory
+            # Step 3: Check if it's in stock
             if TEMPORAL_AVAILABLE:
                 inventory = await workflow.execute_activity(
-                    check_inventory,
-                    recommended_product,
+                    check_inventory, best_product,
                     start_to_close_timeout=timedelta(seconds=30)
                 )
             else:
-                inventory = await check_inventory(recommended_product)
+                inventory = await check_inventory(best_product)
             
             if not inventory["in_stock"]:
                 return {
                     "success": False,
-                    "message": f"Sorry, {recommended_product.name} is currently out of stock",
+                    "message": f"{best_product.name} is out of stock",
                     "estimated_restock": inventory["estimated_delivery"],
-                    "alternative_products": [p.name for p in products[1:3]]
+                    "alternatives": [p.name for p in products[1:3]]
                 }
             
-            # Step 4: Negotiate deal
+            # Step 4: Try to get a deal
             if TEMPORAL_AVAILABLE:
                 deal = await workflow.execute_activity(
-                    negotiate_deal,
-                    recommended_product,
-                    request.budget,
+                    negotiate_deal, best_product, request.budget,
                     start_to_close_timeout=timedelta(minutes=5),
                     retry_policy=self.retry_policy
                 )
             else:
-                deal = await negotiate_deal(recommended_product, request.budget)
+                deal = await negotiate_deal(best_product, request.budget)
             
-            # Step 5: Process purchase (if urgent or auto-approved)
+            # Step 5: Buy it if urgent or good deal
             if request.urgency == "high" or deal.discount_percent > 10:
                 if TEMPORAL_AVAILABLE:
-                    purchase_result = await workflow.execute_activity(
-                        process_purchase,
-                        deal,
-                        request.user_id,
+                    purchase = await workflow.execute_activity(
+                        process_purchase, deal, request.user_id,
                         start_to_close_timeout=timedelta(seconds=60),
                         retry_policy=self.retry_policy
                     )
                 else:
-                    purchase_result = await process_purchase(deal, request.user_id)
+                    purchase = await process_purchase(deal, request.user_id)
                 
                 return {
                     "success": True,
-                    "action": "purchase_completed",
+                    "action": "bought_it",
                     "deal": {
-                        "product_name": deal.product.name,
-                        "original_price": deal.original_price,
-                        "final_price": deal.negotiated_price,
-                        "discount_percent": deal.discount_percent,
-                        "savings": deal.original_price - deal.negotiated_price
+                        "product": deal.product.name,
+                        "was": deal.original_price,
+                        "now": deal.negotiated_price,
+                        "discount": deal.discount_percent,
+                        "saved": deal.original_price - deal.negotiated_price
                     },
-                    "purchase": purchase_result,
+                    "purchase": purchase,
                     "user_id": request.user_id
                 }
             else:
-                # Return deal for user approval
+                # Need approval
                 return {
                     "success": True,
-                    "action": "deal_ready_for_approval",
+                    "action": "needs_approval",
                     "deal": {
-                        "product_name": deal.product.name,
-                        "original_price": deal.original_price,
-                        "final_price": deal.negotiated_price,
-                        "discount_percent": deal.discount_percent,
-                        "savings": deal.original_price - deal.negotiated_price,
+                        "product": deal.product.name,
+                        "was": deal.original_price,
+                        "now": deal.negotiated_price,
+                        "discount": deal.discount_percent,
+                        "saved": deal.original_price - deal.negotiated_price,
                         "terms": deal.terms,
-                        "expires_at": deal.expires_at.isoformat()
+                        "expires": deal.expires_at.isoformat()
                     },
                     "inventory": inventory,
                     "user_id": request.user_id,
-                    "message": "Great deal found! Please review and approve the purchase."
+                    "message": "Found a deal - want to buy it?"
                 }
         
         except Exception as e:
@@ -409,81 +359,71 @@ class CommerceAgentWorkflow:
                 "success": False,
                 "error": str(e),
                 "user_id": request.user_id,
-                "message": "An error occurred while processing your request"
+                "message": "Something went wrong"
             }
 
 async def demo_commerce_agent():
-    """Demonstrate the commerce agent workflow"""
+    """Try out the commerce agent"""
     
-    print("🛍️  Commerce Assistant Agent Demo")
-    print("=" * 60)
+    print("🛍️  Commerce Agent Demo")
+    print("=" * 50)
     
-    # Sample requests
+    # Test requests
     requests = [
         CommerceRequest(
             user_id="user_001",
-            request="I need a high-performance laptop for software development",
+            request="I need a laptop for coding",
             budget=2000.0,
-            preferences={
-                "brands": ["Apple", "Dell"],
-                "features": ["16GB RAM", "SSD"]
-            },
+            preferences={"brands": ["Apple", "Dell"], "features": ["16GB RAM", "SSD"]},
             urgency="normal"
         ),
         CommerceRequest(
             user_id="user_002", 
-            request="Looking for wireless headphones with noise cancellation",
+            request="wireless headphones with noise cancellation",
             budget=300.0,
-            preferences={
-                "features": ["ANC", "Bluetooth"]
-            },
+            preferences={"features": ["ANC", "Bluetooth"]},
             urgency="high"
         )
     ]
     
     for i, request in enumerate(requests, 1):
-        print(f"\n🔄 Processing Request {i}/{len(requests)}")
+        print(f"\n🔄 Request {i}/{len(requests)}")
         print(f"User: {request.user_id}")
-        print(f"Request: {request.request}")
+        print(f"Wants: {request.request}")
         print(f"Budget: ${request.budget}")
-        print("-" * 40)
+        print("-" * 30)
         
-        # Create workflow instance
-        workflow_instance = CommerceAgentWorkflow()
+        workflow = CommerceAgentWorkflow()
+        result = await workflow.run(request)
         
-        # Execute workflow
-        result = await workflow_instance.run(request)
-        
-        # Display results
         print(f"\n📊 Result:")
         if result["success"]:
-            if result["action"] == "purchase_completed":
-                print(f"✅ Purchase completed!")
+            if result["action"] == "bought_it":
+                print(f"✅ Bought it!")
                 deal = result["deal"]
-                print(f"   Product: {deal['product_name']}")
-                print(f"   Price: ${deal['original_price']:.2f} → ${deal['final_price']:.2f}")
-                print(f"   Savings: ${deal['savings']:.2f} ({deal['discount_percent']:.1f}% off)")
+                print(f"   Product: {deal['product']}")
+                print(f"   Price: ${deal['was']:.2f} → ${deal['now']:.2f}")
+                print(f"   Saved: ${deal['saved']:.2f} ({deal['discount']:.1f}% off)")
                 
                 if result["purchase"]["success"]:
-                    print(f"   Order ID: {result['purchase']['order_id']}")
-                    print(f"   Delivery: {result['purchase']['estimated_delivery']}")
+                    print(f"   Order: {result['purchase']['order_id']}")
             
-            elif result["action"] == "deal_ready_for_approval":
-                print(f"💼 Deal ready for approval:")
+            elif result["action"] == "needs_approval":
+                print(f"💼 Needs approval:")
                 deal = result["deal"]
-                print(f"   Product: {deal['product_name']}")
-                print(f"   Price: ${deal['original_price']:.2f} → ${deal['final_price']:.2f}")
-                print(f"   Savings: ${deal['savings']:.2f} ({deal['discount_percent']:.1f}% off)")
-                print(f"   Expires: {deal['expires_at']}")
+                print(f"   Product: {deal['product']}")
+                print(f"   Price: ${deal['was']:.2f} → ${deal['now']:.2f}")
+                print(f"   Saved: ${deal['saved']:.2f} ({deal['discount']:.1f}% off)")
         else:
             print(f"❌ {result['message']}")
             if "error" in result:
                 print(f"   Error: {result['error']}")
         
         if i < len(requests):
-            print("\n" + "=" * 60)
+            print("\n" + "=" * 50)
     
-    print(f"\n✅ Demo completed! Processed {len(requests)} commerce requests.")
+    print(f"\n✅ Done! Processed {len(requests)} requests.")
 
 if __name__ == "__main__":
     asyncio.run(demo_commerce_agent())
+

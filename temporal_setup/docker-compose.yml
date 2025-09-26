@@ -68,3 +68,4 @@ networks:
 volumes:
   temporal_postgresql_data:
   temporal_redis_data:
+
