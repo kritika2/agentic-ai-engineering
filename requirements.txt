@@ -24,8 +24,11 @@ pytest>=7.4.0
 pytest-asyncio>=0.21.0
 black>=23.0.0
 
+# Additional dependencies for tool integration
+aiohttp>=3.8.0  # async http for API tools
+beautifulsoup4>=4.12.0  # web scraping (already listed above)
+
 # TODO: add these when needed
 # psycopg2-binary>=2.9.0  # postgres
-# aiohttp>=3.8.0  # async http
 # numpy>=1.24.0  # math stuff
 

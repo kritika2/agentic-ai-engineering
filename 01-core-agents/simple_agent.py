@@ -1,6 +1,6 @@
 """
-Basic agent implementation with LLM, memory, and tools.
-Nothing fancy, just the core pieces working together.
+Simple agent that can remember stuff and use tools.
+Started this as a weekend project to understand how agents work.
 """
 
 import json
@@ -9,19 +9,19 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-# TODO: maybe switch to pydantic instead of dataclasses?
+# might switch to pydantic later if this gets more complex
 
 class LLMInterface:
-    """Mock LLM - replace with real API calls later"""
+    """Mock LLM - will hook up to OpenAI later"""
     
     def __init__(self, model_name: str = "gpt-4"):
         self.model_name = model_name
     
     def generate(self, prompt: str, max_tokens: int = 500) -> str:
-        """Fake LLM responses for testing"""
+        """Fake responses for now - saves on API costs during dev"""
         print(f"{self.model_name}: thinking...")
         
-        # Just some basic pattern matching for demo
+        # basic pattern matching until I get the real API working
         if "plan" in prompt.lower():
             return "I'll break this down:\n1. Figure out what you want\n2. Get the info I need\n3. Do the thing\n4. Check if it worked"
         elif "search" in prompt.lower():
@@ -56,7 +56,7 @@ class AgentMemory:
     
     def _move_to_long_term(self, interaction: Dict):
         """Move old stuff to long term storage"""
-        # TODO: should use LLM to summarize properly
+        # should probably use the LLM to summarize this better
         summary_key = f"summary_{len(self.long_term)}"
         self.long_term[summary_key] = {
             "timestamp": interaction["timestamp"],
@@ -119,7 +119,7 @@ class SearchTool(Tool):
         }
 
 class CalculatorTool(Tool):
-    """Basic calculator - probably shouldn't use eval() in prod"""
+    """Basic calculator - yeah I know eval() is sketchy"""
     
     def name(self) -> str:
         return "calculator"
@@ -128,14 +128,14 @@ class CalculatorTool(Tool):
         return "Do math"
     
     def execute(self, expression: str) -> Dict[str, Any]:
-        """Calculate stuff - this is kinda sketchy with eval()"""
+        """Calculate stuff - need to replace eval() eventually"""
         print(f"Calculating: {expression}")
         
         try:
-            # Yeah I know eval() is bad but it's just a demo
+            # I know eval() is bad but it's just a prototype
             allowed_chars = set('0123456789+-*/.() ')
             if all(c in allowed_chars for c in expression):
-                result = eval(expression)  # TODO: use a real math parser
+                result = eval(expression)  # will use a proper parser later
                 return {
                     "success": True,
                     "result": result,
@@ -144,13 +144,13 @@ class CalculatorTool(Tool):
             else:
                 return {
                     "success": False,
-                    "error": "Nope, that looks suspicious",
+                    "error": "That looks suspicious",
                     "expression": expression
                 }
         except Exception as e:
             return {
                 "success": False,
-                "error": f"Math broke: {str(e)}",
+                "error": f"Math failed: {str(e)}",
                 "expression": expression
             }
 
@@ -194,7 +194,7 @@ class SimpleAgent:
         
         reasoning_result = self.llm.generate(prompt)
         
-        # Simple pattern matching to decide on tools
+        # hacky pattern matching to figure out what tools to use
         user_input = perception['input'].lower()
         needs_search = "search" in user_input or "find" in user_input
         needs_calc = any(op in user_input for op in ['+', '-', '*', '/', 'calculate'])
@@ -208,7 +208,7 @@ class SimpleAgent:
             plan["steps"].append({"action": "search", "query": perception['input']})
         
         if needs_calc:
-            # Try to extract math expression - this is pretty hacky
+            # try to extract math expression - this is super hacky
             import re
             math_bits = re.findall(r'[\d+\-*/().\s]+', perception['input'])
             if math_bits:
