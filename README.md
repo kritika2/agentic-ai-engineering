@@ -208,4 +208,4 @@ class CodingAssistantWorkflow:
 
 *This repository implements concepts from the "Agentic AI for Engineers" series. Each example includes detailed documentation and is production-ready.*
 
-**Note**: This is an active project! Follow for updates as we add more examples and advanced features.
+**Note**: This is an active project! Follow for updates as we add more examples and advanced features...
