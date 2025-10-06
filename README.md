@@ -160,7 +160,7 @@ class CodingAssistantWorkflow:
 ### **Reliability**
 - **Automatic retries** with exponential backoff
 - **Circuit breakers** for external services
-- **Graceful degradation** when tools fail
+- **Graceful degradation** when tools fails
 
 ### **Observability**
 - **Temporal UI** for workflow monitoring
