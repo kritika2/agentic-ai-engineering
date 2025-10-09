@@ -1,6 +1,6 @@
 """
 Simple agent that can remember stuff and use tools.
-Started this as a weekend project to understand how agents work.
+Started this as a weekend project to understand how agents work. And it is still WIP.
 """
 
 import json
