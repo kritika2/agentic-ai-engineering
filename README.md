@@ -181,6 +181,7 @@ class CodingAssistantWorkflow:
 
 ## Development Roadmap
 
+
 ### **Phase 1: Foundation**
 - Core agent architecture
 - Temporal workflow integration  
